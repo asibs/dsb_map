@@ -25,8 +25,8 @@
       var currentConstituencyGeo = null;
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '© OpenStreetMap'
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
       }).addTo(map);
 
       async function setMapView() {
@@ -84,23 +84,23 @@
               currentConstituencyGeo.removeFrom(map);
             }
 
-            currentConstituencyGeo = {
+            currentConstituencyGeo = L.geoJSON({
               "type": "Feature",
               "properties": {
                 "name": constituency.name,
                 "party": "Labour"
               },
               "geometry": parsedGeoJsonData
-            };
-            console.log(currentConstituencyGeo);
-            L.geoJSON(currentConstituencyGeo, {
-                style: function(feature) {
-                    switch (feature.properties.party) {
-                        case 'Labour': return {color: "#ff0000"};
-                        case 'Conservative': return {color: "#0000ff"};
-                    }
+            }, {
+              style: function(feature) {
+                switch (feature.properties.party) {
+                  case 'Labour': return {color: "#ff0000"};
+                  case 'Conservative': return {color: "#0000ff"};
                 }
-            }).addTo(map);
+              }
+            });
+            
+            currentConstituencyGeo.addTo(map);
           }
         } else {
           alert("Oops, something went wrong! Are you sure that's a valid postcode?");
