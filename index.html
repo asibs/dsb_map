@@ -28,6 +28,14 @@
     </div>
 
     <div>
+      <form>
+        <label for="region">Region Code:</label>
+        <input type="text" id="region" name="region">
+        <input type="button" value="Submit" onClick="setRegion()">
+      </form>
+    </div>
+
+    <div>
       <p id="constituency"></p>
     </div>
 
@@ -127,6 +135,33 @@
         if (geoJsonResponse.status === 200) {
           let geoJsonData = await geoJsonResponse.text();
           let parsedGeoJsonData = JSON.parse(geoJsonData);
+
+          currentRegionGeo = L.geoJSON({
+            "type": "Feature",
+            "properties": {
+              "name": constituency.name,
+              "party": "Labour"
+            },
+            "geometry": parsedGeoJsonData
+          }, {
+            style: {color: "#ffffff"}
+          });
+          currentRegionGeo.addTo(map);
+        }
+      }
+
+      async function setRegion() {
+        let region = document.getElementById("region").value || "";
+        let geoJsonResponse = await fetch(`https://asibs.github.io/dsb_map/geojson/${region}.geojson`);
+
+        if (geoJsonResponse.status === 200) {
+          let geoJsonData = await geoJsonResponse.text();
+          let parsedGeoJsonData = JSON.parse(geoJsonData);
+
+          if (currentRegionGeo !== null) {
+            console.log("removing old constituency geo");
+            currentRegionGeo.removeFrom(map);
+          }
 
           currentRegionGeo = L.geoJSON({
             "type": "Feature",
