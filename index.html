@@ -169,27 +169,27 @@
             });
             currentConstituencyGeo.addTo(map);
           }
+
+          // Get the GeoJSON for the region
+          let geoJsonResponse = await fetch(`https://asibs.github.io/dsb_map/geojson/${regionCode}.geojson`);
+
+          if (geoJsonResponse.status === 200) {
+            let geoJsonData = await geoJsonResponse.text();
+            let parsedGeoJsonData = JSON.parse(geoJsonData);
+
+            currentRegionGeo = L.geoJSON({
+              "type": "Feature",
+              "properties": {
+                "name": regionName
+              },
+              "geometry": parsedGeoJsonData
+            }, {
+              style: {color: "#ffffff"}
+            });
+            currentRegionGeo.addTo(map);
+          }
         } else {
           alert("Oops, something went wrong! Are you sure that's a valid postcode?");
-        }
-
-        // Get the GeoJSON for the region
-        let geoJsonResponse = await fetch(`https://asibs.github.io/dsb_map/geojson/${regionCode}.geojson`);
-
-        if (geoJsonResponse.status === 200) {
-          let geoJsonData = await geoJsonResponse.text();
-          let parsedGeoJsonData = JSON.parse(geoJsonData);
-
-          currentRegionGeo = L.geoJSON({
-            "type": "Feature",
-            "properties": {
-              "name": regionName
-            },
-            "geometry": parsedGeoJsonData
-          }, {
-            style: {color: "#ffffff"}
-          });
-          currentRegionGeo.addTo(map);
         }
       }
 
