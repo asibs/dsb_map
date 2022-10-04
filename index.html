@@ -16,9 +16,25 @@
       integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
       crossorigin="" 
     ></script>
+  </head>
+  
+  <body>
+    <div>
+      <form>
+        <label for="postcode">Postcode:</label>
+        <input type="text" id="postcode" name="postcode">
+        <input type="button" value="Submit" onClick="setMapView()">
+      </form>
+    </div>
+    
+    <div>
+      <p id="constituency"></p>
+    </div>
+    
+    <div id="map" style="height: 450px; width: 450px;"></div>
     
     <script>
-      var map = L.map('map')
+      var map = L.map('map');
       map.setView([51.505, -0.09], 10);
 
       var currentLocation = null;
@@ -107,21 +123,5 @@
         }
       }
     </script>
-  </head>
-  
-  <body>
-    <div>
-      <form>
-        <label for="postcode">Postcode:</label>
-        <input type="text" id="postcode" name="postcode">
-        <input type="button" value="Submit" onClick="setMapView()">
-      </form>
-    </div>
-    
-    <div>
-      <p id="constituency"></p>
-    </div>
-    
-    <div id="map" style="height: 450px; width: 450px;"></div>
   </body>
 </html>
