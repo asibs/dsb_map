@@ -123,6 +123,17 @@
           console.log(regionCode);
           console.log(regionName);
 
+          // Remove old geographies, if present
+          if (currentRegionGeo !== null) {
+            console.log("removing old region geo");
+            currentRegionGeo.removeFrom(map);
+          }
+
+          if (currentConstituencyGeo !== null) {
+            console.log("removing old constituency geo");
+            currentConstituencyGeo.removeFrom(map);
+          }
+
           // Set the text
           document.getElementById("constituency").innerHTML = `Looks like your constituency is: ${constituency.name}!`;
           document.getElementById("region").innerHTML = `Looks like your region is: ${regionName}!`;
@@ -137,12 +148,6 @@
             let parsedGeoJsonData = JSON.parse(geoJsonData);
 
             console.log(parsedGeoJsonData);
-
-            // Remove old geography, if present
-            if (currentConstituencyGeo !== null) {
-              console.log("removing old constituency geo");
-              currentConstituencyGeo.removeFrom(map);
-            }
 
             currentConstituencyGeo = L.geoJSON({
               "type": "Feature",
