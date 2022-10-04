@@ -132,8 +132,8 @@
           console.log(regionName);
 
           // Set the text
-          document.getElementById("constituency").innerHTML = `Looks like your constituency is: ${constituency.name}!`
-          document.getElementById("region").innerHTML = `Looks like your region is: ${regionName}!`
+          document.getElementById("constituency").innerHTML = `Looks like your constituency is: ${constituency.name}!`;
+          document.getElementById("region").innerHTML = `Looks like your region is: ${regionName}!`;
 
           // Get the GeoJSON for the constituency
           let geoJsonResponse = await fetch(`https://mapit.mysociety.org/area/${constituency.id}.geojson`);
