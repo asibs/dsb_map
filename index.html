@@ -9,15 +9,15 @@
       integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
       crossorigin=""
     />
-    
+
     <!-- Make sure you put this AFTER Leaflet's CSS -->
     <script
       src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"
       integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
-      crossorigin="" 
+      crossorigin=""
     ></script>
   </head>
-  
+
   <body>
     <div>
       <form>
@@ -26,13 +26,13 @@
         <input type="button" value="Submit" onClick="setMapView()">
       </form>
     </div>
-    
+
     <div>
       <p id="constituency"></p>
     </div>
-    
+
     <div id="map" style="height: 450px; width: 450px;"></div>
-    
+
     <script>
       var map = L.map('map');
       map.setView([51.505, -0.09], 10);
@@ -115,11 +115,30 @@
                 }
               }
             });
-            
             currentConstituencyGeo.addTo(map);
           }
         } else {
           alert("Oops, something went wrong! Are you sure that's a valid postcode?");
+        }
+
+        // Get the GeoJSON for the region
+        let geoJsonResponse = await fetch(`https://asibs.github.io/dsb_map/geojson/E12000001.geojson`);
+
+        if (geoJsonResponse.status === 200) {
+          let geoJsonData = await geoJsonResponse.text();
+          let parsedGeoJsonData = JSON.parse(geoJsonData);
+
+          currentRegionGeo = L.geoJSON({
+            "type": "Feature",
+            "properties": {
+              "name": constituency.name,
+              "party": "Labour"
+            },
+            "geometry": parsedGeoJsonData
+          }, {
+            style: {color: "#ffffff"}
+          });
+          currentRegionGeo.addTo(map);
         }
       }
     </script>
