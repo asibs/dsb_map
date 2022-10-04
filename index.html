@@ -37,6 +37,7 @@
 
     <div>
       <p id="constituency"></p>
+      <p id="region"></p>
     </div>
 
     <div id="map" style="height: 450px; width: 450px;"></div>
@@ -85,12 +86,54 @@
 
           // Get the Westminster Constituency from the MapIt data
           let constituency = Object.values(parsedData.areas).find(area => area.type === "WMC");
-
           console.log(constituency);
           console.log(constituency.name);
 
-          // Set the constituency text
-          document.getElementById("constituency").innerHTML = `Looks like you're in ${constituency.name}!`
+          // Get the Region from the MapIt data
+          let regionCode = null;
+          let regionName = null;
+          if (constiuency.country == "E") {
+            let region = Object.values(parsedData.areas).find(area => area.type === "ER");
+            regionCode = region.codes.gss;
+
+            switch(regionCode) {
+              case "E12000001":
+                regionName = "North East England"; break;
+              case "E12000002":
+                regionName = "North West England"; break;
+              case "E12000003":
+                regionName = "Yorkshire and the Humber"; break;
+              case "E12000004":
+                regionName = "East Midlands"; break;
+              case "E12000005":
+                regionName = "West Midlands"; break;
+              case "E12000006":
+                regionName = "Eastern England"; break;
+              case "E12000007":
+                regionName = "London"; break;
+              case "E12000008":
+                regionName = "South East England"; break;
+              case "E12000009":
+                regionName = "South West England"; break;
+              case "S92000003":
+                regionName = "Scotland"; break;
+              case "W92000004":
+                regionName = "Wales"; break;
+            }
+          } else if (constituency.country === "S") {
+            regionCode = "S92000003";
+            regionName = "Scotland";
+          } else if (constituency.country === "W") {
+            regionCode = "W92000004";
+            regionName = "Wales";
+          }
+
+          console.log(regionCode);
+          console.log(regionName);
+
+          // Set the text
+          document.getElementById("constituency").innerHTML = `Looks like your constituency is: ${constituency.name}!`
+          document.getElementById("region").innerHTML = `Looks like your region is: ${regionName}!`
 
           // Get the GeoJSON for the constituency
           let geoJsonResponse = await fetch(`https://mapit.mysociety.org/area/${constituency.id}.geojson`);
@@ -131,7 +174,7 @@
         }
 
         // Get the GeoJSON for the region
-        let geoJsonResponse = await fetch(`https://asibs.github.io/dsb_map/geojson/E12000001.geojson`);
+        let geoJsonResponse = await fetch(`https://asibs.github.io/dsb_map/geojson/${regionCode}.geojson`);
 
         if (geoJsonResponse.status === 200) {
           let geoJsonData = await geoJsonResponse.text();
@@ -140,8 +183,7 @@
           currentRegionGeo = L.geoJSON({
             "type": "Feature",
             "properties": {
-              "name": constituency.name,
-              "party": "Labour"
+              "name": regionName
             },
             "geometry": parsedGeoJsonData
           }, {
