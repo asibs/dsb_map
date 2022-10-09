@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Page Title</title>
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
+      integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
+      crossorigin=""
+    />
+
+    <!-- Make sure you put this AFTER Leaflet's CSS -->
+    <script
+      src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"
+      integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
+      crossorigin=""
+    ></script>
+  </head>
+
+  <body>
+    <div>
+      <div id="map" style="height: 450px; width: 450px;"></div>
+
+      <form>
+        <label for="postcode">Enter your postcode to find your local DSB group:</label>
+        <input type="text" id="postcode" name="postcode">
+        <input type="button" value="Submit" onClick="setMapView()">
+      </form>
+    </div>
+
+    <div>
+      <p id="region"></p>
+    </div>
+
+    <script>
+      var map = L.map('map');
+      map.setView([53.7, -1.5], 5);
+
+      var currentLocation = null;
+      var currentRegionGeo = null;
+      var currentConstituencyGeo = null;
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+
+      async function setMapView() {
+        let postcode = document.getElementById("postcode").value || "";
+        postcode = postcode.replace(/\s/g,'').replace(/\-/g, '');
+
+        console.log(`Postcode is ${postcode}`);
+
+        let response = await fetch(`https://findthatpostcode.uk/postcodes/${postcode}.json`);
+        if (response.status === 200) {
+          console.log("Got 200 from FindThatPostcode lookup!");
+
+          let data = await response.text();
+          let parsedData = JSON.parse(data);
+
+          console.log(parsedData);
+
+          // Get the lat/lon from FindThatPostcode data
+          let lat = parsedData.data.attributes.location.lat;
+          let lon = parsedData.data.attributes.location.lon;
+
+          // Add / update the current location marker to the map
+          if (currentLocation === null) {
+            currentLocation = L.marker([lat, lon]).addTo(map);
+          } else {
+            currentLocation.setLatLng([lat, lon]);
+          }
+
+          // Set the center of the map
+          map.setView([lat, lon], 7);
+
+          let [constituencyCode, constituencyName] = getConstituencyData(parsedData);
+          let [regionCode, regionName, regionMessage] =  getRegionData(parsedData);
+
+          // Remove old geographies, if present
+          if (currentRegionGeo !== null) {
+            console.log("removing old region geo");
+            currentRegionGeo.removeFrom(map);
+          }
+
+          if (regionMessage === null) {
+            document.getElementById("region").innerHTML = "Sorry, Democracy Strikes Back doesn't have a group in your area right now.";
+          } else {
+            document.getElementById("region").innerHTML = regionMessage;
+
+            // Get the GeoJSON for the region
+            geoJsonResponse = await fetch(`https://asibs.github.io/dsb_map/geojson/${regionCode}.geojson`);
+
+            if (geoJsonResponse.status === 200) {
+              let geoJsonData = await geoJsonResponse.text();
+              let parsedGeoJsonData = JSON.parse(geoJsonData);
+
+              currentRegionGeo = L.geoJSON({
+                "type": "Feature",
+                "properties": {
+                  "name": regionName
+                },
+                "geometry": parsedGeoJsonData
+              }, {
+                style: {color: "#ff0000"}
+              });
+              currentRegionGeo.addTo(map);
+            }
+          }
+        } else {
+          // FindThatPostcode lookup returned non-200 response...
+          document.getElementById("region").innerHTML = "Oops, something went wrong! Are you sure that's a valid postcode?";
+        }
+      }
+
+      // Get the Westminster Constituency from the FindThatPostcode data
+      function getConstituencyData(jsonData) {
+        let constituencyCode = jsonData.data.attributes.pcon;
+        let constituencyName = jsonData.data.attributes.pcon_name;
+
+        console.log(`constituencyCode ${constituencyCode}`);
+        console.log(`constituencyName ${constituencyName}`);
+
+        return [constituencyCode, constituencyName];
+      }
+
+      // Get the Region from the FindThatPostcode data
+      function getRegionData(jsonData) {
+        let regionCode = null;
+        let regionName = null;
+        let regionMessage = null;
+        if (jsonData.data.attributes.ctry_name === "England") {
+          regionCode = jsonData.data.attributes.rgn
+
+          switch(regionCode) {
+            case "E12000001":
+              regionName = "North East England";
+              regionMessage = `
+              Your regional Democracy Strikes Back group is ${regionName}!
+              <br /><br />
+              <b>DSB North East & Scotland meeting / training</b> is happening on Tuesday 18 October 6-7pm -
+              <b><a href="https://us06web.zoom.us/meeting/register/tZApduGqqzIjGtIeCw6Arwr9IiUeEMBlpuOE">Register Here!</a></b>
+              <br /><br />
+              Can't make it? Email <a href="mailto:info@democracystrikesback.org">info@democracystrikesback.org</a>
+              and remember to <a href="https://democracystrikesback.org/">sign up to the DSB mailing list</a>
+              `;
+              break;
+            case "E12000002":
+              regionName = "North West England";
+              regionMessage = `
+              Your regional Democracy Strikes Back group is ${regionName}!
+              <br /><br />
+              <b>DSB North West meeting / training</b> is happening on Wednesday 19 October 6-7pm -
+              <b><a href="https://us06web.zoom.us/meeting/register/tZctd-mgrjgrGdNJ1D8tdrhTGVVVfF1l8Xf_">Register Here!</a></b>
+              <br /><br />
+              Can't make it? Email <a href="mailto:info@democracystrikesback.org">info@democracystrikesback.org</a>
+              and remember to <a href="https://democracystrikesback.org/">sign up to the DSB mailing list</a>
+              `;
+              break;
+            case "E12000003":
+              regionName = "Yorkshire and the Humber";
+              regionMessage = `
+              Your regional Democracy Strikes Back group is ${regionName}!
+              <br /><br />
+              <b>DSB Yorkshire and Humber meeting / training</b> is happening on Tuesday 25 October 6-7pm -
+              <b><a href="https://us06web.zoom.us/meeting/register/tZAvd-qgqjopGtc3HyjbTwZP2B7PI3fPJqJc">Register Here!</a></b>
+              <br /><br />
+              Can't make it? Email <a href="mailto:info@democracystrikesback.org">info@democracystrikesback.org</a>
+              and remember to <a href="https://democracystrikesback.org/">sign up to the DSB mailing list</a>
+              `;
+              break;
+            case "E12000004":
+              regionName = "East Midlands";
+              regionMessage = `
+              Your regional Democracy Strikes Back group is ${regionName}!
+              <br /><br />
+              <b>DSB East Midlands meeting / training</b> is happening on Thursday 20 October 6-7pm -
+              <b><a href="https://us06web.zoom.us/meeting/register/tZcqcO6qqjIpHNy5TX-eJklPL73Qly0MKcMd">Register Here!</a></b>
+              <br /><br />
+              Can't make it? Email <a href="mailto:info@democracystrikesback.org">info@democracystrikesback.org</a>
+              and remember to <a href="https://democracystrikesback.org/">sign up to the DSB mailing list</a>
+              `;
+              break;
+            case "E12000005":
+              regionName = "West Midlands";
+              regionMessage = `
+              Your regional Democracy Strikes Back group is ${regionName}!
+              <br /><br />
+              <b>DSB West Midlands and Wales meeting / training</b> is happening on Friday 21 October 6-7pm -
+              <b><a href="https://us06web.zoom.us/meeting/register/tZ0vceCgqTMiEtVOLFiuVcV0Qng0zbZzXGdB">Register Here!</a></b>
+              <br /><br />
+              Can't make it? Email <a href="mailto:info@democracystrikesback.org">info@democracystrikesback.org</a>
+              and remember to <a href="https://democracystrikesback.org/">sign up to the DSB mailing list</a>
+              `;
+              break;
+            case "E12000006":
+              regionName = "East Anglia";
+              regionMessage = `
+              Your regional Democracy Strikes Back group is ${regionName}!
+              <br /><br />
+              <b>DSB East Anglia meeting / training</b> is happening on Wednesday 26 October 6-7pm -
+              <b><a href="https://us06web.zoom.us/meeting/register/tZIqdu6rpzgoGdL7W7NKwfBc3bltR7DA-TF7">Register Here!</a></b>
+              <br /><br />
+              Can't make it? Email <a href="mailto:info@democracystrikesback.org">info@democracystrikesback.org</a>
+              and remember to <a href="https://democracystrikesback.org/">sign up to the DSB mailing list</a>
+              `;
+              break;
+            case "E12000007":
+              regionName = "London";
+              regionMessage = `
+              Your regional Democracy Strikes Back group is ${regionName}!
+              <br /><br />
+              <b>DSB South East & London meeting / training</b> is happening on Friday 28 October 6-7pm -
+              <b><a href="https://us06web.zoom.us/meeting/register/tZcpc--rqDkuH9yfrwChG-neswBJcMvqQoG_">Register Here!</a></b>
+              <br /><br />
+              Can't make it? Email <a href="mailto:info@democracystrikesback.org">info@democracystrikesback.org</a>
+              and remember to <a href="https://democracystrikesback.org/">sign up to the DSB mailing list</a>
+              `;
+               break;
+            case "E12000008":
+              regionName = "South East England";
+              regionMessage = `
+              Your regional Democracy Strikes Back group is ${regionName}!
+              <br /><br />
+              <b>DSB South East & London meeting / training</b> is happening on Friday 28 October 6-7pm -
+              <b><a href="https://us06web.zoom.us/meeting/register/tZcpc--rqDkuH9yfrwChG-neswBJcMvqQoG_">Register Here!</a></b>
+              <br /><br />
+              Can't make it? Email <a href="mailto:info@democracystrikesback.org">info@democracystrikesback.org</a>
+              and remember to <a href="https://democracystrikesback.org/">sign up to the DSB mailing list</a>
+              `;
+              break;
+            case "E12000009":
+              regionName = "South West England";
+              regionMessage = `
+              Your regional Democracy Strikes Back group is ${regionName}!
+              <br /><br />
+              <b>DSB DSB South West meeting / training</b> is happening on Monday 17 October 6-7pm -
+              <b><a href="https://us06web.zoom.us/meeting/register/tZUkcuioqj4jG9GBFxTlI8cUATRhq4X8eeHR">Register Here!</a></b>
+              <br /><br />
+              Can't make it? Email <a href="mailto:info@democracystrikesback.org">info@democracystrikesback.org</a>
+              and remember to <a href="https://democracystrikesback.org/">sign up to the DSB mailing list</a>
+              `;
+              break;
+          }
+        } else if (jsonData.data.attributes.ctry_name === "Scotland") {
+          regionCode = "S92000003";
+          regionName = "Scotland";
+          regionMessage = `
+          Your regional Democracy Strikes Back group is ${regionName}!
+          <br /><br />
+          <b>DSB North East & Scotland meeting / training</b> is happening on Tuesday 18 October 6-7pm -
+          <b><a href="https://us06web.zoom.us/meeting/register/tZApduGqqzIjGtIeCw6Arwr9IiUeEMBlpuOE">Register Here!</a></b>
+          <br /><br />
+          Can't make it? Email <a href="mailto:info@democracystrikesback.org">info@democracystrikesback.org</a>
+          and remember to <a href="https://democracystrikesback.org/">sign up to the DSB mailing list</a>
+          `;
+        } else if (jsonData.data.attributes.ctry_name === "Wales") {
+          regionCode = "W92000004";
+          regionName = "Wales";
+          regionMessage = `
+          Your regional Democracy Strikes Back group is ${regionName}!
+          <br /><br />
+          <b>DSB West Midlands and Wales meeting / training</b> is happening on Friday 21 October 6-7pm -
+          <b><a href="https://us06web.zoom.us/meeting/register/tZ0vceCgqTMiEtVOLFiuVcV0Qng0zbZzXGdB">Register Here!</a></b>
+          <br /><br />
+          Can't make it? Email <a href="mailto:info@democracystrikesback.org">info@democracystrikesback.org</a>
+          and remember to <a href="https://democracystrikesback.org/">sign up to the DSB mailing list</a>
+          `;
+        }
+
+        console.log(`regionCode ${regionCode}`);
+        console.log(`regionName ${regionName}`);
+
+        return [regionCode, regionName, regionMessage];
+      }
+    </script>
+  </body>
+</html>
